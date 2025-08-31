@@ -1,0 +1,107 @@
+"use client"
+
+import React from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { MessageSquareText, Paperclip } from "lucide-react"
+
+const tasks = [
+  {
+    title: "Review final UI assets for marketing website",
+    due: "In 2h 16m",
+    priority: "High",
+    status: "In Progress",
+    project: "LumenForge",
+    comments: 3,
+    attachments: 0,
+  },
+  {
+    title: "Oversee copy refinement for integration pages",
+    due: "In 3h 25m",
+    priority: "Medium",
+    status: "Todo",
+    project: "NebulaCart",
+    comments: 1,
+    attachments: 2,
+  },
+  {
+    title: "Plan and delegate onboarding flow wireframes",
+    due: "In 4h 12m",
+    priority: "Medium",
+    status: "Todo",
+    project: "EchoSuite",
+    comments: 0,
+    attachments: 1,
+  },
+]
+
+function Pill({ children, color = "slate" }) {
+  const base = "text-xs rounded-full px-2.5 py-1 border"
+  const map = {
+    emerald: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+    amber: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+    red: "bg-red-500/15 text-red-400 border-red-500/20",
+    slate: "bg-zinc-800/60 text-zinc-300 border-zinc-700",
+  }
+  return <span className={`${base} ${map[color]}`}>{children}</span>
+}
+
+export function MyDay() {
+  return (
+    <div className="space-y-3">
+      {tasks.map((t, i) => (
+        <Card key={i} className="bg-zinc-900 border-zinc-800 rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                {/* Due time */}
+                <div className="flex items-center gap-2 text-xs text-zinc-400 mb-2">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex h-2 w-2 rounded-full bg-zinc-600" />
+                    {t.due}
+                  </span>
+                </div>
+
+                {/* Task title */}
+                <div className="text-[15px] leading-6 font-medium">{t.title}</div>
+
+                {/* Tags */}
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Pill color={t.priority === "High" ? "red" : t.priority === "Medium" ? "amber" : "slate"}>
+                    {t.priority}
+                  </Pill>
+                  <Pill color="emerald">{t.status}</Pill>
+                  <Pill color="slate">{t.project}</Pill>
+                </div>
+              </div>
+
+              {/* Right side: avatars + comments + attachments */}
+              <div className="flex items-center gap-4">
+                <div className="flex -space-x-2">
+                  {Array.from({ length: Math.min(3, 1 + (i % 3)) }).map((_, idx) => (
+                    <span
+                      key={idx}
+                      className="grid h-7 w-7 place-items-center rounded-full bg-zinc-800 ring-1 ring-zinc-800 text-[10px] text-zinc-300"
+                    >
+                      👤
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3 text-zinc-400">
+                  <span className="inline-flex items-center gap-1">
+                    <MessageSquareText className="h-4 w-4" />
+                    <span className="text-sm">{t.comments}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Paperclip className="h-4 w-4" />
+                    <span className="text-sm">{t.attachments}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}

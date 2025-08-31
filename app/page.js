@@ -1,27 +1,17 @@
-import { createClient } from './../utils/supabase/client';
+import HomePage from "../components/home/HomePage";
+import { createBrowserSupabaseClient } from "../lib/supabase/client";
 
 export default async function Home() {
-  const supabase = createClient()
+  const supabase = createBrowserSupabaseClient();
 
-  const { data: todos, error } = await supabase.from('todos').select('*')
+  const { data: todos, error } = await supabase.from("todos").select("*");
 
   if (error) {
-    console.error('Supabase error:', error.message)
-    return <p>❌ Failed to load todos</p>
+    console.error("Supabase error:", error.message);
+    return <p>❌ Failed to load todos</p>;
   }
 
-  return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold">✅ Supabase Todos</h1>
-      <ul className="mt-4">
-        {todos?.map((todo) => (
-          <li key={todo.id} className="mb-2">
-            {todo.task} {todo.is_complete ? '✔️' : '❌'}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
+  return <HomePage />;
 }
 
 // Just checking Supabase Connection
