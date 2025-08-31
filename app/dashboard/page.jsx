@@ -1,4 +1,4 @@
-import LogoutButton from "../../components/LogoutButton";
+import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "../../lib/supabase/server";
 import Dashboard from "../../components/dashboard/Dashboard";
 
@@ -10,10 +10,9 @@ export default async function DashboardPage() {
     error,
   } = await supabase.auth.getUser();
 
-  // You can redirect if not logged in
-  // if (error || !user) {
-  //   redirect("/login");  // use next/navigation
-  // }
+  if (error || !user) {
+    redirect("/login");
+  }
 
   return <Dashboard />;
 }

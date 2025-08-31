@@ -1,16 +1,39 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bell, Plus, ChevronDown } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Topnav() {
-  const doctorName = "Dr. John Doe";
+  const [name, setName] = useState(null);
+  const [avatar, setAvatar] = useState("/images/profile.png");
+  const supabase = createBrowserSupabaseClient();
+  const router = useRouter();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
+      } else {
+        setName(user.user_metadata?.displayName || user.email);
+        setAvatar(user.user_metadata?.avatar_url);
+      }
+    };
+
+    getUser();
+  }, [supabase, router]);
 
   return (
-    <header className="dark:bg-[#101010]/60 backdrop-blur-sm sticky top-0 z-50">
+    <header className="backdrop-blur-sm sticky top-0 z-50 pb-2">
       <div className="h-full mx-auto px-4 md:px-6 flex items-center justify-between gap-3">
         {/* Search */}
         <form
@@ -25,7 +48,7 @@ export default function Topnav() {
             id="topnav-search"
             type="search"
             placeholder="Search patients, appointments, reports..."
-            className="w-full  rounded-xl"
+            className="w-full rounded-xl"
           />
         </form>
 
@@ -50,17 +73,19 @@ export default function Topnav() {
           </Button>
 
           {/* Profile Section */}
-          <div className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer">
+          <div className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-accent transition-colors cursor-pointer">
             <Image
-              src="/images/profile.png"
-              alt="Doctor Profile"
+              src={avatar || "/images/profile.png"}
+              alt="User Profile"
               width={32}
               height={32}
-              className="rounded-full border border-[#2D2D2D]"
+              className="rounded-full border"
             />
             <div className="hidden sm:flex flex-col leading-tight">
               <span className="text-xs">Welcome back,</span>
-              <span className="text-sm font-medium">{doctorName}</span>
+              <span className="text-sm font-medium">
+                {name ?? "Loading..."}
+              </span>
             </div>
             <ChevronDown className="w-4 h-4" />
           </div>

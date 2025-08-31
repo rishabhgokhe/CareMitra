@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import React from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Area, AreaChart, ResponsiveContainer } from "recharts"
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Area, AreaChart, ResponsiveContainer } from "recharts";
 
 const spark = [
   { x: 1, y: 8 },
@@ -12,7 +12,7 @@ const spark = [
   { x: 5, y: 13 },
   { x: 6, y: 16 },
   { x: 7, y: 18 },
-]
+];
 
 const kpis = [
   {
@@ -47,19 +47,26 @@ const kpis = [
     deltaColor: "emerald",
     data: spark,
   },
-]
+];
 
 export default function OverviewCards() {
   return (
-    <section aria-label="Key metrics" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <section
+      aria-label="Key metrics"
+      className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
+    >
       {kpis.map((kpi) => (
-        <Card key={kpi.label} className="rounded-2xl border-zinc-800 bg-zinc-900">
+        <Card key={kpi.label} className="rounded-2xl">
           <CardHeader className="pb-1 flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium text-zinc-400">{kpi.label}</CardTitle>
-            {kpi.delta ? <DeltaBadge color={kpi.deltaColor}>{kpi.delta}</DeltaBadge> : null}
+            <CardTitle className="text-sm font-medium">{kpi.label}</CardTitle>
+            {kpi.delta ? (
+              <DeltaBadge color={kpi.deltaColor}>{kpi.delta}</DeltaBadge>
+            ) : null}
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-semibold text-zinc-100">{kpi.value}</div>
+            <div className="text-2xl font-semibold text-gray-600 dark:text-zinc-100">
+              {kpi.value}
+            </div>
             <p className="text-xs text-zinc-400 mt-1">{kpi.sub}</p>
 
             <div className="mt-3 h-12">
@@ -79,7 +86,7 @@ export default function OverviewCards() {
         </Card>
       ))}
     </section>
-  )
+  );
 }
 
 function DeltaBadge({ children, color = "emerald" }) {
@@ -87,6 +94,12 @@ function DeltaBadge({ children, color = "emerald" }) {
     emerald: "border-emerald-500/20 bg-emerald-500/15 text-emerald-400",
     amber: "border-amber-500/20 bg-amber-500/15 text-amber-400",
     red: "border-red-500/20 bg-red-500/15 text-red-400",
-  }
-  return <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${map[color]}`}>{children}</span>
+  };
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${map[color]}`}
+    >
+      {children}
+    </span>
+  );
 }

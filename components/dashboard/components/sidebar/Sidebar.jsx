@@ -13,6 +13,7 @@ import {
   LogOut,
   PanelRightClose,
   PanelRightOpen,
+  LayoutDashboard,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -22,14 +23,15 @@ import InfoCard from "./InfoCard";
 import LogoutButton from "@/components/LogoutButton";
 
 const navItems = [
-  { label: "Patients", icon: Users, href: "/dashboard/patients" },
-  { label: "Appointments", icon: Calendar, href: "/dashboard/appointments" },
-  { label: "Reports", icon: FileText, href: "/dashboard/reports" },
-  { label: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
-  { label: "Settings", icon: Settings, href: "/dashboard/settings" },
+  { label: "Overview", icon: LayoutDashboard },
+  { label: "Patients", icon: Users },
+  { label: "Appointments", icon: Calendar },
+  { label: "Reports", icon: FileText },
+  { label: "Analytics", icon: BarChart3 },
+  { label: "Settings", icon: Settings },
 ];
 
-export default function AppSidebar() {
+export default function AppSidebar({ onNavigate }) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
   const [pinned, setPinned] = useState(true);
@@ -42,13 +44,16 @@ export default function AppSidebar() {
       onMouseEnter={() => !pinned && setExpanded(true)}
       onMouseLeave={() => !pinned && setExpanded(false)}
     >
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-4">
         <div className="flex items-center gap-3">
           <Image src="/svgs/Logo.svg" alt="Logo" width={32} height={32} />
           <span
             className={`font-bold text-lg text-brand transition-all duration-300
-              ${expanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
+              ${
+                expanded
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 -translate-x-4"
+              }`}
           >
             CareMitra
           </span>
@@ -68,32 +73,26 @@ export default function AppSidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-2 py-4">
         <div className="space-y-1">
-          {navItems.map(({ label, icon: Icon, href }) => {
-            const isActive = pathname === href;
-            return (
-              <Link key={label} href={href} passHref>
-                <Button
-                  variant="ghost"
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg justify-start
-                    transition-colors duration-200
-                    ${isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-foreground/80 hover:bg-muted hover:text-foreground"}`}
-                >
-                  <Icon
-                    className={`w-5 h-5 transition-colors duration-200
-                      ${isActive ? "text-primary" : "text-foreground/50 group-hover:text-foreground"}`}
-                  />
-                  <span
-                    className={`whitespace-nowrap transition-all duration-300
-                      ${expanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
-                  >
-                    {label}
-                  </span>
-                </Button>
-              </Link>
-            );
-          })}
+          {navItems.map(({ label, icon: Icon }) => (
+            <Button
+              key={label}
+              variant="ghost"
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg justify-start
+      transition-colors duration-200`}
+              onClick={() => onNavigate(label)}
+            >
+              <Icon className="w-5 h-5" />
+              <span
+                className={`whitespace-nowrap transition-all duration-300 ${
+                  expanded
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 -translate-x-4"
+                }`}
+              >
+                {label}
+              </span>
+            </Button>
+          ))}
         </div>
       </ScrollArea>
 
