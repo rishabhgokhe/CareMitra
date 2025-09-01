@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Bell, Plus, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import SearchPatients from "./SearchPatients";
 
 export default function Topnav() {
   const [name, setName] = useState(null);
@@ -15,6 +15,7 @@ export default function Topnav() {
   const supabase = createBrowserSupabaseClient();
   const router = useRouter();
 
+  // ✅ Get current user
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -25,7 +26,7 @@ export default function Topnav() {
         router.push("/login");
       } else {
         setName(user.user_metadata?.displayName || user.email);
-        setAvatar(user.user_metadata?.avatar_url);
+        setAvatar(user.user_metadata?.avatar_url || "/images/profile.png");
       }
     };
 
@@ -35,23 +36,10 @@ export default function Topnav() {
   return (
     <header className="backdrop-blur-sm sticky top-0 z-50 pb-2">
       <div className="h-full mx-auto px-4 md:px-6 flex items-center justify-between gap-3">
-        {/* Search */}
-        <form
-          className="flex-1 max-w-md"
-          role="search"
-          aria-label="Search patients, appointments, reports"
-        >
-          <label htmlFor="topnav-search" className="sr-only">
-            Search
-          </label>
-          <Input
-            id="topnav-search"
-            type="search"
-            placeholder="Search patients, appointments, reports..."
-            className="w-full rounded-xl"
-          />
-        </form>
+        {/* 🔍 Search Patients */}
+        <SearchPatients />
 
+        {/* 🔧 Right Side */}
         <div className="flex items-center gap-3">
           <Button variant="outline" className="gap-2 rounded-xl">
             <Plus className="h-4 w-4" />
@@ -72,10 +60,10 @@ export default function Topnav() {
             />
           </Button>
 
-          {/* Profile Section */}
+          {/* Profile */}
           <div className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-accent transition-colors cursor-pointer">
             <Image
-              src={avatar || "/images/profile.png"}
+              src={avatar}
               alt="User Profile"
               width={32}
               height={32}

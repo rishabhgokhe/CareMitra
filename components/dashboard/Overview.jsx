@@ -3,8 +3,8 @@ import SeasonalFootfallChart from "@/components/dashboard/components/charts/Seas
 import DoctorUtilizationChart from "@/components/dashboard/components/charts/DoctorUtilizationChart";
 import DiseaseTrendsChart from "@/components/dashboard/components/charts/DiseaseTrendsChart";
 import DemographicsPieChart from "@/components/dashboard/components/charts/DemographicsPieChart";
-import { MyDay } from "@/components/dashboard/components/MyDay";
-import { RightRail } from "@/components/dashboard/components/RightRail";
+import { MyDay } from "@/components/dashboard/components/overview/MyDay";
+import { RightRail } from "@/components/dashboard/components/overview/RightRail";
 
 export default function Overview() {
   return (
@@ -35,19 +35,19 @@ export default function Overview() {
 
       {/* Analytics charts (optional, keeps parity with your existing content) */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+        <div className="rounded-2xl border border-zinc-800 p-4">
           <h2 className="text-base font-medium mb-3">Seasonal Footfall</h2>
           <SeasonalFootfallChart />
         </div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+        <div className="rounded-2xl border border-zinc-800 p-4">
           <h2 className="text-base font-medium mb-3">Doctor Utilization</h2>
           <DoctorUtilizationChart />
         </div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+        <div className="rounded-2xl border border-zinc-800 p-4">
           <h2 className="text-base font-medium mb-3">Disease Trends</h2>
           <DiseaseTrendsChart />
         </div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+        <div className="rounded-2xl border border-zinc-800 p-4">
           <h2 className="text-base font-medium mb-3">Patient Demographics</h2>
           <DemographicsPieChart />
         </div>

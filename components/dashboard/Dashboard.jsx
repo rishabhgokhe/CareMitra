@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import AppSidebar from "@/components/dashboard/components/sidebar/Sidebar";
-import Topnav from "@/components/dashboard/components/Topnav";
+import Topnav from "@/components/dashboard/components/navbar/Topnav";
 import Overview from "./Overview";
 import PatientsTable from "./components/PatientsTable";
 import Reports from "./components/Reports";

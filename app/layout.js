@@ -10,7 +10,7 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <ThemeProvider attribute={"class"}>{children}</ThemeProvider>
-          <Toaster position="top-right" />
+          <Toaster position="bottom-right" />
         </AuthProvider>
       </body>
     </html>
