@@ -89,7 +89,7 @@ const Features = () => {
     <section
       ref={sectionRef}
       className="relative py-20 md:py-32 bg-gradient-to-b from-white via-teal-50 to-sky-50 
-                 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors"
+                 dark:from-slate-900 dark:via-slate-900 dark:to-sky-900 transition-colors"
     >
       <div className="container mx-auto px-6">
         {/* Heading */}

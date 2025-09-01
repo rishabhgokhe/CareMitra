@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Separator from "@/components/elements/separator";
 import InfoCard from "./InfoCard";
-import LogoutButton from "@/components/LogoutButton";
+import LogoutButton from "@/components/elements/LogoutButton";
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard },

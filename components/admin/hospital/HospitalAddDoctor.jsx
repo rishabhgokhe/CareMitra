@@ -13,6 +13,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import toast from "react-hot-toast";
+import ButtonLoader from "@/components/elements/ButtonLoader";
 
 export default function HospitalAddDoctor() {
   const supabase = createBrowserSupabaseClient();
@@ -28,31 +29,7 @@ export default function HospitalAddDoctor() {
     hospitalId: "",
   });
 
-  // 🔒 check role
-  useEffect(() => {
-    (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Please login first");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (error || data.role !== "hospital_admin") {
-        toast.error("Access denied. Hospital Admins only.");
-        window.location.href = "/"; // redirect
-      }
-    })();
-  }, [supabase]);
-
-  // 📌 fetch hospitals
+  // Fetch hospitals
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
@@ -67,28 +44,41 @@ export default function HospitalAddDoctor() {
     })();
   }, [supabase]);
 
-  // 📝 form handler
+  // Form handler
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // 🚀 add doctor
+  // Submit
+  // 🚀 Add doctor
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!form.hospitalId) {
+      toast.error("Please select a hospital");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // 1️⃣ Create auth account
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (!sessionData.session) {
+        toast.error("You must be logged in to add a doctor");
+        setLoading(false);
+        return;
+      }
+
       const { data: authUser, error: signUpErr } = await supabase.auth.signUp({
         email: form.email,
-        password: "TempPass123!", // ⚠️ use invite flow in prod
+        password: "TempPass123!",
       });
 
       if (signUpErr) throw signUpErr;
 
       const userId = authUser.user.id;
 
-      // 2️⃣ Insert into users
       const { error: userErr } = await supabase.from("users").insert({
         id: userId,
         name: form.name,
@@ -98,7 +88,6 @@ export default function HospitalAddDoctor() {
       });
       if (userErr) throw userErr;
 
-      // 3️⃣ Insert into doctors
       const { error: docErr } = await supabase.from("doctors").insert({
         id: userId,
         hospital_id: form.hospitalId,
@@ -125,57 +114,80 @@ export default function HospitalAddDoctor() {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-6 bg-white dark:bg-zinc-900 rounded-2xl shadow">
-      <h2 className="text-xl font-semibold mb-4">Add Doctor to Hospital</h2>
+    <div className="max-w-xl mx-auto p-6 bg-white dark:bg-zinc-900 rounded-2xl shadow">
+      <div className="mb-6 text-center">
+        <h2 className="text-2xl font-bold">Add a Doctor</h2>
+        <p className="text-gray-600 dark:text-gray-300">
+          Assign a new doctor to a hospital. Fill in the details below and
+          select the hospital they will be associated with.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label>Name</Label>
+        {/* Name */}
+        <div className="space-y-1">
+          <Label htmlFor="name">Full Name</Label>
           <Input
+            id="name"
             value={form.name}
             onChange={(e) => handleChange("name", e.target.value)}
+            placeholder="Dr. John Doe"
             required
           />
         </div>
 
-        <div>
-          <Label>Email</Label>
+        {/* Email */}
+        <div className="space-y-1">
+          <Label htmlFor="email">Email</Label>
           <Input
+            id="email"
             type="email"
             value={form.email}
             onChange={(e) => handleChange("email", e.target.value)}
+            placeholder="doctor@example.com"
             required
           />
         </div>
 
-        <div>
-          <Label>Phone</Label>
+        {/* Phone */}
+        <div className="space-y-1">
+          <Label htmlFor="phone">Phone</Label>
           <Input
+            id="phone"
             value={form.phone}
             onChange={(e) => handleChange("phone", e.target.value)}
+            placeholder="+91 12345 67890"
             required
           />
         </div>
 
-        <div>
-          <Label>Qualification</Label>
+        {/* Qualification */}
+        <div className="space-y-1">
+          <Label htmlFor="qualification">Qualification</Label>
           <Input
+            id="qualification"
             value={form.qualification}
             onChange={(e) => handleChange("qualification", e.target.value)}
+            placeholder="MBBS, MD"
             required
           />
         </div>
 
-        <div>
-          <Label>Specialization</Label>
+        {/* Specialization */}
+        <div className="space-y-1">
+          <Label htmlFor="specialization">Specialization</Label>
           <Input
+            id="specialization"
             value={form.specialization}
             onChange={(e) => handleChange("specialization", e.target.value)}
+            placeholder="Cardiology, Neurology"
             required
           />
         </div>
 
-        <div>
-          <Label>Hospital</Label>
+        {/* Hospital Select */}
+        <div className="space-y-1">
+          <Label>Assign to Hospital</Label>
           <Select
             value={form.hospitalId}
             onValueChange={(v) => handleChange("hospitalId", v)}
@@ -193,8 +205,9 @@ export default function HospitalAddDoctor() {
           </Select>
         </div>
 
+        {/* Submit */}
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Adding..." : "Add Doctor"}
+          {loading ? <ButtonLoader text="Adding..." /> : "Add Doctor"}
         </Button>
       </form>
     </div>

@@ -3,8 +3,8 @@ import React, { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import toast from "react-hot-toast";
 
-import { ToolTipIcon } from "./ui/ToolTipIcon";
-import { Button } from "./ui/button";
+import { ToolTipIcon } from "./ToolTipIcon";
+import { Button } from "./../ui/button";
 import { Moon, Sun } from "lucide-react";
 
 const ThemeToggle = () => {

@@ -6,9 +6,10 @@ import Features from "./Features";
 import CTA from "./CTA";
 import CustomLinkButton from "../elements/CustomLinkButton";
 
-import CircleArrowUp03Icon from "@/public/jsx-icons/CircleArrowUp03Icon";
-import InformationCircleIcon from "@/public/jsx-icons/InformationCircleIcon";
+import LightningIcon from "@/public/jsx-icons/LightningIcon";
+import InfoIcon from "@/public/jsx-icons/InfoIcon";
 import Image from "next/image";
+import ThemeToggle from "../elements/ThemeToggle";
 
 const HomePage = () => {
   const heroRef = useRef(null);
@@ -41,9 +42,12 @@ const HomePage = () => {
     <main
       className="min-h-screen relative overflow-hidden 
                   bg-gradient-to-b from-sky-100 via-white to-teal-100 
-                dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 
+                  dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 
                   transition-colors"
     >
+      <div className="fixed right-5 top-5">
+        <ThemeToggle />
+      </div>
       <section
         ref={heroRef}
         className="relative py-24 md:py-36 text-center container mx-auto px-6 max-w-screen-lg z-100"
@@ -73,16 +77,19 @@ const HomePage = () => {
           ref={subheadingRef}
           className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          CareMitra is your personal health wallet. Powered by{" "}
+          <span className="text-teal-500 dark:text-teal-400 font-bold drop-shadow-[0_0_8px_rgba(14,165,233,0.7)] dark:drop-shadow-[0_0_8px_rgba(20,184,166,0.7)]">
+            CareMitra
+          </span>{" "}
+          is your personal health wallet. Powered by{" "}
           <span className="font-semibold text-yellow-500">blockchain</span>,
           designed for patients, and trusted by hospitals.
         </p>
 
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <CustomLinkButton href="/login" leftIcon={<CircleArrowUp03Icon />}>
+          <CustomLinkButton href="/login" leftIcon={<LightningIcon />}>
             Get Started
           </CustomLinkButton>
-          <CustomLinkButton href="/info" leftIcon={<InformationCircleIcon />}>
+          <CustomLinkButton href="/info" leftIcon={<InfoIcon />}>
             Learn More
           </CustomLinkButton>
         </div>

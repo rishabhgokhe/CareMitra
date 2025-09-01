@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ButtonLoader from "../elements/ButtonLoader";
 
 export default function LoginForm({ className, ...props }) {
   const supabase = createBrowserSupabaseClient();
@@ -103,7 +104,7 @@ export default function LoginForm({ className, ...props }) {
                 className="w-full bg-cyan-700 hover:bg-cyan-600 cursor-pointer"
                 disabled={loading}
               >
-                {loading ? "Logging in..." : "Login"}
+                {loading ? <ButtonLoader text="Logging in..." /> : "Login"}
               </Button>
 
               {/* Divider */}

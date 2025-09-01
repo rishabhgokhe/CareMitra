@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import toast from "react-hot-toast";
+import ButtonLoader from "../elements/ButtonLoader";
 
 export default function SignUpForm({ className, ...props }) {
   const supabase = createBrowserSupabaseClient();
@@ -35,7 +36,6 @@ export default function SignUpForm({ className, ...props }) {
     } else {
       toast.success("Account created successfully!");
 
-      // optional: insert into "users" table
       if (data.user) {
         await supabase.from("users").insert({
           id: data.user.id,
@@ -46,7 +46,7 @@ export default function SignUpForm({ className, ...props }) {
 
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1500); // small delay so toast is visible
+      }, 1000);
     }
   };
 
@@ -106,7 +106,7 @@ export default function SignUpForm({ className, ...props }) {
               className="w-full bg-cyan-700 hover:bg-cyan-600 cursor-pointer"
               disabled={loading}
             >
-              {loading ? "Signing up..." : "Sign Up"}
+              {loading ? <ButtonLoader text="Signing up..." /> : "Sign Up"}
             </Button>
 
             {/* Divider */}

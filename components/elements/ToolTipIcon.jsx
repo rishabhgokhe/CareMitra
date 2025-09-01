@@ -8,8 +8,8 @@ import {
 export function ToolTipIcon({ name, triggerJsxElement }) {
   return (
     <TooltipProvider>
-      <Tooltip delayDuration={0}>
-        <TooltipTrigger asChild>{triggerJsxElement}</TooltipTrigger>
+      <Tooltip  delayDuration={0}>
+        <TooltipTrigger  asChild>{triggerJsxElement}</TooltipTrigger>
         <TooltipContent>
           <p>{name}</p>
         </TooltipContent>

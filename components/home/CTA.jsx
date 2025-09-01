@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import CustomLinkButton from "../elements/CustomLinkButton";
-import MailSend01Icon from "@/public/jsx-icons/MailSend01Icon";
+import CircleArrowRight01Icon from "@/public/jsx-icons/CircleArrowRight01Icon";
 
 const CTA = () => {
   const sectionRef = useRef(null);
@@ -76,7 +76,7 @@ const CTA = () => {
 
         {/* CTA Button */}
         <div ref={buttonRef} className="relative z-10">
-          <CustomLinkButton href="/signup" leftIcon={<MailSend01Icon />}>
+          <CustomLinkButton href="/signup" rightIcon={<CircleArrowRight01Icon />}>
             Create Free Account
           </CustomLinkButton>
         </div>

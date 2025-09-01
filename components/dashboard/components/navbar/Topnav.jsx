@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import ThemeToggle from "@/components/ThemeToggle";
+import ThemeToggle from "@/components/elements/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Bell, Plus, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import SearchPatients from "./SearchPatients";
+import Link from "next/link";
 
 export default function Topnav() {
   const [name, setName] = useState(null);
@@ -15,7 +16,6 @@ export default function Topnav() {
   const supabase = createBrowserSupabaseClient();
   const router = useRouter();
 
-  // ✅ Get current user
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -36,10 +36,8 @@ export default function Topnav() {
   return (
     <header className="backdrop-blur-sm sticky top-0 z-50 pb-2">
       <div className="h-full mx-auto px-4 md:px-6 flex items-center justify-between gap-3">
-        {/* 🔍 Search Patients */}
         <SearchPatients />
 
-        {/* 🔧 Right Side */}
         <div className="flex items-center gap-3">
           <Button variant="outline" className="gap-2 rounded-xl">
             <Plus className="h-4 w-4" />
@@ -60,7 +58,15 @@ export default function Topnav() {
             />
           </Button>
 
-          {/* Profile */}
+          <Link href={"/admin"}>
+            <Button
+              variant="outline"
+              className="gap-2 rounded-x text-red-500 cursor-pointer"
+            >
+              Admin
+            </Button>
+          </Link>
+
           <div className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-accent transition-colors cursor-pointer">
             <Image
               src={avatar}

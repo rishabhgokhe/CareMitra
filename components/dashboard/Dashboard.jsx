@@ -6,7 +6,7 @@ import Topnav from "@/components/dashboard/components/navbar/Topnav";
 import Overview from "./Overview";
 import PatientsTable from "./components/PatientsTable";
 import Reports from "./components/Reports";
-import Appointments from "./components/Appointments";
+import Appointments from "./components/appointment/Appointments";
 import Settings from "./components/Settings";
 
 export default function Dashboard() {
