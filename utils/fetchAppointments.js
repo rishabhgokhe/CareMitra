@@ -51,6 +51,7 @@ export async function fetchAppointments(
 
     const formatted = data.map((appt) => ({
       id: appt.id,
+      patientId: appt.patient?.id,
       patientName: appt.patient?.name || "Unnamed Patient",
       patientEmail: appt.patient?.email || "Unknown Email",
       patientPhone: appt.patient?.phone || "Unknown Phone",

@@ -5,7 +5,17 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import toast from "react-hot-toast";
+import { PlusCircle } from "lucide-react";
+import ButtonLoader from "@/components/elements/ButtonLoader";
 
 export default function CreateAppointment() {
   const supabase = createBrowserSupabaseClient();
@@ -17,7 +27,7 @@ export default function CreateAppointment() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [doctorId, setDoctorId] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   // Fetch doctor, patients, hospitals
   useEffect(() => {
@@ -70,34 +80,29 @@ export default function CreateAppointment() {
       setSelectedHospital("");
       setScheduledAt("");
       setNotes("");
-      setIsOpen(false);
+      setOpen(false);
     }
 
     setLoading(false);
   };
 
   return (
-    <section className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow border border-zinc-200 dark:border-zinc-800 max-w-md mx-auto">
-      <Button
-        className="mb-4 w-full"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
-        {isOpen ? "Close Form ✖️" : "Create Appointment ➕"}
-      </Button>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="secondary">Create Appointment <PlusCircle /></Button>
+      </DialogTrigger>
 
-      {isOpen && (
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Create Appointment</DialogTitle>
+        </DialogHeader>
+
         <div className="space-y-4">
-          {/* Patient Select */}
           <div>
-            <Label
-              htmlFor="patient"
-              className="text-zinc-700 dark:text-zinc-300"
-            >
-              Patient
-            </Label>
+            <Label htmlFor="patient">Patient</Label>
             <select
               id="patient"
-              className="w-full mt-1 p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+              className="w-full mt-1 p-2 rounded-lg border bg-white dark:bg-zinc-800"
               value={selectedPatient}
               onChange={(e) => setSelectedPatient(e.target.value)}
             >
@@ -110,17 +115,11 @@ export default function CreateAppointment() {
             </select>
           </div>
 
-          {/* Hospital Select */}
           <div>
-            <Label
-              htmlFor="hospital"
-              className="text-zinc-700 dark:text-zinc-300"
-            >
-              Hospital
-            </Label>
+            <Label htmlFor="hospital">Hospital</Label>
             <select
               id="hospital"
-              className="w-full mt-1 p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+              className="w-full mt-1 p-2 rounded-lg border bg-white dark:bg-zinc-800"
               value={selectedHospital}
               onChange={(e) => setSelectedHospital(e.target.value)}
             >
@@ -133,14 +132,8 @@ export default function CreateAppointment() {
             </select>
           </div>
 
-          {/* Scheduled Date & Time */}
           <div>
-            <Label
-              htmlFor="datetime"
-              className="text-zinc-700 dark:text-zinc-300"
-            >
-              Scheduled Date & Time
-            </Label>
+            <Label htmlFor="datetime">Scheduled Date & Time</Label>
             <Input
               id="datetime"
               type="datetime-local"
@@ -149,29 +142,28 @@ export default function CreateAppointment() {
             />
           </div>
 
-          {/* Notes */}
           <div>
-            <Label htmlFor="notes" className="text-zinc-700 dark:text-zinc-300">
-              Notes (optional)
-            </Label>
+            <Label htmlFor="notes">Notes (optional)</Label>
             <textarea
               id="notes"
-              className="w-full mt-1 p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+              className="w-full mt-1 p-2 rounded-lg border bg-white dark:bg-zinc-800"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+        </div>
 
+        <DialogFooter>
           <Button
             onClick={handleCreateAppointment}
             disabled={loading}
             className="w-full"
           >
-            {loading ? "Creating..." : "Create Appointment ✅"}
+            {loading ? <ButtonLoader text="Creating..." /> : "Create Appointment ✅"}
           </Button>
-        </div>
-      )}
-    </section>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

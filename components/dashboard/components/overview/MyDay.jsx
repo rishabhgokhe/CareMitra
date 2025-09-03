@@ -1,47 +1,46 @@
 "use client";
 
-import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquareText, Paperclip } from "lucide-react";
+import { MessageSquareText, Paperclip, CalendarCheck2, FlaskConical, Phone } from "lucide-react";
 
 const tasks = [
   {
-    title: "Review final UI assets for marketing website",
-    due: "In 2h 16m",
+    title: "Consultation with Ravi Kumar",
+    due: "09:30 AM",
     priority: "High",
-    status: "In Progress",
-    project: "LumenForge",
-    comments: 3,
-    attachments: 0,
+    status: "Confirmed",
+    type: "Appointment",
+    patient: "Ravi Kumar",
+    comments: 2,
+    attachments: 1,
   },
   {
-    title: "Oversee copy refinement for integration pages",
-    due: "In 3h 25m",
+    title: "Review MRI results - Anita Sharma",
+    due: "11:00 AM",
     priority: "Medium",
-    status: "Todo",
-    project: "NebulaCart",
-    comments: 1,
+    status: "Pending Review",
+    type: "Report",
+    patient: "Anita Sharma",
+    comments: 0,
     attachments: 2,
   },
   {
-    title: "Plan and delegate onboarding flow wireframes",
-    due: "In 4h 12m",
-    priority: "Medium",
+    title: "Follow-up call - Arjun Mehta",
+    due: "04:00 PM",
+    priority: "Low",
     status: "Todo",
-    project: "EchoSuite",
-    comments: 0,
-    attachments: 1,
+    type: "Follow-up",
+    patient: "Arjun Mehta",
+    comments: 1,
+    attachments: 0,
   },
 ];
 
 function Pill({ children, color = "slate" }) {
-  const base =
-    "text-xs rounded-full px-2.5 py-1 border font-medium transition-colors";
+  const base = "text-xs rounded-full px-2.5 py-1 border font-medium transition-colors";
   const map = {
-    emerald:
-      "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    amber:
-      "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    emerald: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    amber: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
     red: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
     slate: "bg-muted text-muted-foreground border-border",
   };
@@ -87,26 +86,20 @@ export function MyDay() {
                     {t.priority}
                   </Pill>
                   <Pill color="emerald">{t.status}</Pill>
-                  <Pill color="slate">{t.project}</Pill>
+                  <Pill color="slate">{t.type}</Pill>
                 </div>
               </div>
 
-              {/* Right side: avatars + comments + attachments */}
+              {/* Right side */}
               <div className="flex items-center gap-4">
-                {/* Dummy avatars */}
+                {/* Patient avatar initials */}
                 <div className="flex -space-x-2">
-                  {Array.from({ length: Math.min(3, 1 + (i % 3)) }).map(
-                    (_, idx) => (
-                      <span
-                        key={idx}
-                        className="grid h-7 w-7 place-items-center rounded-full bg-muted ring-2 ring-background text-[10px] text-muted-foreground"
-                      >
-                        👤
-                      </span>
-                    )
-                  )}
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-blue-100 text-blue-600 font-semibold ring-2 ring-background">
+                    {t.patient.split(" ").map((n) => n[0]).join("")}
+                  </span>
                 </div>
 
+                {/* Comments + attachments */}
                 <div className="flex items-center gap-3 text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
                     <MessageSquareText className="h-4 w-4" />

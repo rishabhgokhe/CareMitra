@@ -1,8 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import toast from "react-hot-toast";
+import { fetchPatients } from "@/utils/fetchPatients";
+import { fetchAppointments } from "@/utils/fetchAppointments";
 
 const spark = [
   { x: 1, y: 8 },
@@ -14,42 +17,101 @@ const spark = [
   { x: 7, y: 18 },
 ];
 
-const kpis = [
-  {
-    label: "Total Patients",
-    value: "12,384",
-    sub: "+4.1% vs last month",
-    delta: "+4.1%",
-    deltaColor: "emerald",
-    data: spark,
-  },
-  {
-    label: "Upcoming Appointments",
-    value: "128",
-    sub: "Today + Next 7 Days",
-    delta: "+1.3%",
-    deltaColor: "emerald",
-    data: spark,
-  },
-  {
-    label: "Pending Reports",
-    value: "37",
-    sub: "Awaiting review/sign-off",
-    delta: "-2.4%",
-    deltaColor: "amber",
-    data: spark,
-  },
-  {
-    label: "Blockchain-Verified",
-    value: "8,902",
-    sub: "Verified reports on-chain",
-    delta: "+0.8%",
-    deltaColor: "emerald",
-    data: spark,
-  },
-];
-
 export default function OverviewCards() {
+  const [loading, setLoading] = useState(false);
+  const [metrics, setMetrics] = useState({
+    totalPatients: 0,
+    upcomingAppointments: 0,
+    pendingReports: "37", // placeholder
+    blockchainVerified: "8,902", // placeholder
+  });
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      setLoading(true);
+
+      try {
+        // ✅ Fetch Patients
+        const {
+          success: patientsOk,
+          data: patients,
+          error: patientsErr,
+        } = await fetchPatients(["id"]);
+        if (!patientsOk) throw new Error(patientsErr);
+
+        const totalPatients = patients?.length || 0;
+
+        // ✅ Fetch Appointments (today + next 7 days)
+        const now = new Date();
+        const nextWeek = new Date();
+        nextWeek.setDate(now.getDate() + 7);
+
+        const {
+          success: apptOk,
+          data: appts,
+          error: apptErr,
+        } = await fetchAppointments(["id", "scheduled_at"]);
+        if (!apptOk) throw new Error(apptErr);
+
+        const upcomingAppointments =
+          appts?.filter(
+            (a) =>
+              new Date(a.scheduledAt) >= now &&
+              new Date(a.scheduledAt) <= nextWeek
+          ).length || 0;
+
+        setMetrics({
+          totalPatients,
+          upcomingAppointments,
+          pendingReports: "37",
+          blockchainVerified: "8,902",
+        });
+      } catch (err) {
+        console.error(err);
+        toast.error("Error loading metrics ❌");
+      }
+
+      setLoading(false);
+    };
+
+    fetchMetrics();
+  }, []);
+
+  const kpis = [
+    {
+      label: "Total Patients",
+      value: metrics.totalPatients.toString(),
+      sub: "+4.1% vs last month",
+      delta: "+4.1%",
+      deltaColor: "emerald",
+      data: spark,
+    },
+    {
+      label: "Upcoming Appointments",
+      value: metrics.upcomingAppointments.toString(),
+      sub: "Today + Next 7 Days",
+      delta: "+1.3%",
+      deltaColor: "emerald",
+      data: spark,
+    },
+    {
+      label: "Pending Reports",
+      value: metrics.pendingReports,
+      sub: "Awaiting review/sign-off",
+      delta: "-2.4%",
+      deltaColor: "amber",
+      data: spark,
+    },
+    {
+      label: "Blockchain-Verified",
+      value: metrics.blockchainVerified,
+      sub: "Verified reports on-chain",
+      delta: "+0.8%",
+      deltaColor: "emerald",
+      data: spark,
+    },
+  ];
+
   return (
     <section
       aria-label="Key metrics"
@@ -65,7 +127,7 @@ export default function OverviewCards() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-semibold text-gray-600 dark:text-zinc-100">
-              {kpi.value}
+              {loading ? "..." : kpi.value}
             </div>
             <p className="text-xs text-zinc-400 mt-1">{kpi.sub}</p>
 
