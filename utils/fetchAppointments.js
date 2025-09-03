@@ -13,7 +13,7 @@ export async function fetchAppointments(
     "scheduled_at",
     "status",
     "notes",
-    "patient:patient_id (id, name, email, phone, dob)",
+    "patient:patient_id (id, name, email, phone, dob, avatar_url)",
     "hospital:hospital_id (id, name, location)"
   ],
   from,
@@ -55,6 +55,7 @@ export async function fetchAppointments(
       patientName: appt.patient?.name || "Unnamed Patient",
       patientEmail: appt.patient?.email || "Unknown Email",
       patientPhone: appt.patient?.phone || "Unknown Phone",
+      paitentAvatar: appt.patient?.avatar_url || "/images/profile.png",
       patientAge: appt.patient?.dob
         ? Math.floor(
             (new Date() - new Date(appt.patient.dob)) /

@@ -6,6 +6,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import Loader from "@/components/elements/Loader";
+import {
+  Calendar,
+  FileText,
+  Pill,
+  User,
+  Phone,
+  Mail,
+  Droplet,
+} from "lucide-react";
+import AppointmentCard from "@/components/dashboard/components/appointment/AppointmentCard";
+import AppSidebar from "@/components/dashboard/components/sidebar/Sidebar";
+import Topnav from "@/components/dashboard/components/navbar/Topnav";
+import PaitentInfoCard from "@/components/dashboard/components/paitents/PaitentInfoCard";
+
+function SkeletonCard() {
+  return (
+    <div className="animate-pulse bg-muted/30 rounded-2xl p-6 h-40 w-full"></div>
+  );
+}
 
 export default function PatientDetailsPage() {
   const { id } = useParams();
@@ -20,42 +39,26 @@ export default function PatientDetailsPage() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
 
-      const { data: doctorData, error: doctorErr } = await supabase
+      if (!user) return setLoading(false);
+
+      const { data: doctorData } = await supabase
         .from("doctors")
         .select("id")
         .eq("id", user.id)
         .single();
 
-      if (doctorErr) {
-        console.error("Doctor lookup failed:", doctorErr);
-      }
       const doctorId = doctorData?.id;
 
-      console.log("auth user id:", user.id);
-      console.log("doctor from table:", doctorData);
-      console.log("doctorId used in query:", doctorId);
-
-      const { data: patientData, error: patientErr } = await supabase
+      const { data: patientData } = await supabase
         .from("users")
         .select("*")
         .eq("id", id)
         .eq("role", "patient")
         .single();
-
-      if (patientErr) {
-        console.error(patientErr);
-        setLoading(false);
-        return;
-      }
 
       const { data: appointmentData } = await supabase
         .from("appointments")
@@ -85,135 +88,158 @@ export default function PatientDetailsPage() {
     if (id) fetchData();
   }, [id]);
 
-  if (loading) return <Loader text="Hang tight, loading patient details..." />;
+  if (loading)
+    return (
+      <div className="flex flex-col h-screen">
+        {/* <Topnav /> */}
+        <div className="flex flex-1">
+          {/* <AppSidebar /> */}
+          <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </main>
+        </div>
+      </div>
+    );
 
   if (!patient)
     return (
-      <div className="text-center text-red-500">
+      <div className="text-center text-red-500 p-10">
         Patient not found or not accessible.
       </div>
     );
 
   return (
-    <div className="space-y-6">
-      {/* Patient Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{patient.name}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {patient.gender} • {patient.dob} • Blood: {patient.blood_group}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm">Phone: {patient.phone}</p>
-          <p className="text-sm">Email: {patient.email}</p>
-        </CardContent>
-      </Card>
+    <div className="flex h-screen">
+      {/* <AppSidebar /> */}
+      <div className="flex-1 flex flex-col">
+        {/* <Topnav /> */}
+        <main className="flex-1 p-6 md:p-10 space-y-10 overflow-y-auto">
+          <PaitentInfoCard patient={patient} />
 
-      {/* Tabs for Appointments, Records, Prescriptions */}
-      <Tabs defaultValue="appointments" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="appointments">Appointments</TabsTrigger>
-          <TabsTrigger value="records">Records</TabsTrigger>
-          <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
-        </TabsList>
+          {/* Tabs */}
+          <Tabs defaultValue="appointments" className="w-full">
+            <TabsList className="mb-8 flex justify-center gap-3 bg-muted/30 p-1 rounded-2xl shadow-inner">
+              <TabsTrigger
+                value="appointments"
+                className="flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md"
+              >
+                <Calendar className="h-4 w-4" /> Appointments
+              </TabsTrigger>
+              <TabsTrigger
+                value="records"
+                className="flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md"
+              >
+                <FileText className="h-4 w-4" /> Records
+              </TabsTrigger>
+              <TabsTrigger
+                value="prescriptions"
+                className="flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md"
+              >
+                <Pill className="h-4 w-4" /> Prescriptions
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Appointments */}
-        <TabsContent value="appointments">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appointments</CardTitle>
-            </CardHeader>
-            <CardContent>
+            {/* Appointments */}
+            <TabsContent value="appointments">
               {appointments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No appointments found with you.
-                </p>
+                <Card className="p-8 text-center text-muted-foreground rounded-2xl">
+                  No appointments found.
+                </Card>
               ) : (
-                <ul className="space-y-2">
+                <div className="grid gap-6 md:grid-cols-2">
                   {appointments.map((appt) => (
-                    <li key={appt.id} className="border-b pb-2 last:border-0">
-                      <p className="font-medium">
-                        {new Date(appt.scheduled_at).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {appt.notes}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Status: {appt.status}
-                      </p>
-                    </li>
+                    <AppointmentCard
+                      key={appt.id}
+                      appointment={{
+                        id: appt.id,
+                        patientId: patient.id,
+                        patientName: patient.name,
+                        patientEmail: patient.email,
+                        patientPhone: patient.phone,
+                        patientAge: patient.age,
+                        paitentAvatar: patient.avatar_url,
+                        hospitalName: appt.hospital_name,
+                        hospitalLocation: appt.hospital_location,
+                        scheduledAt: appt.scheduled_at,
+                        status: appt.status,
+                        notes: appt.notes,
+                      }}
+                    />
                   ))}
-                </ul>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </TabsContent>
 
-        {/* Records */}
-        <TabsContent value="records">
-          <Card>
-            <CardHeader>
-              <CardTitle>Medical Records</CardTitle>
-            </CardHeader>
-            <CardContent>
+            {/* Records */}
+            <TabsContent value="records">
               {records.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <Card className="p-8 text-center text-muted-foreground rounded-2xl">
                   No records available with you.
-                </p>
+                </Card>
               ) : (
-                <ul className="space-y-2">
+                <div className="grid gap-6 md:grid-cols-2">
                   {records.map((rec) => (
-                    <li key={rec.id} className="border-b pb-2 last:border-0">
-                      <p className="font-medium">{rec.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {rec.description}
-                      </p>
-                      {rec.file_url && (
-                        <a
-                          href={rec.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-500 underline"
-                        >
-                          View File
-                        </a>
-                      )}
-                    </li>
+                    <Card
+                      key={rec.id}
+                      className="rounded-2xl border shadow-sm hover:shadow-lg transition"
+                    >
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">
+                          {rec.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-3">
+                        <p>{rec.description}</p>
+                        {rec.file_url && (
+                          <a
+                            href={rec.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-500 underline"
+                          >
+                            📄 View File
+                          </a>
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
-                </ul>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </TabsContent>
 
-        {/* Prescriptions */}
-        <TabsContent value="prescriptions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Prescriptions</CardTitle>
-            </CardHeader>
-            <CardContent>
+            {/* Prescriptions */}
+            <TabsContent value="prescriptions">
               {prescriptions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <Card className="p-8 text-center text-muted-foreground rounded-2xl">
                   No prescriptions found.
-                </p>
+                </Card>
               ) : (
-                <ul className="space-y-2">
+                <div className="grid gap-6 md:grid-cols-2">
                   {prescriptions.map((rx) => (
-                    <li key={rx.id} className="border-b pb-2 last:border-0">
-                      <p className="font-medium">{rx.medicine}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {rx.dosage} • {rx.duration}
-                      </p>
-                    </li>
+                    <Card
+                      key={rx.id}
+                      className="rounded-2xl border shadow-sm hover:shadow-lg transition"
+                    >
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">
+                          {rx.medicine}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        <p>
+                          {rx.dosage} • {rx.duration}
+                        </p>
+                      </CardContent>
+                    </Card>
                   ))}
-                </ul>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </Tabs>
+        </main>
+      </div>
     </div>
   );
 }
