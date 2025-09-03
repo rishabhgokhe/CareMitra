@@ -1,128 +1,269 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import ButtonLoader from "@/components/elements/ButtonLoader";
+import { fetchPatients } from "@/utils/fetchPatients";
+import { jsPDF } from "jspdf";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Eye } from "lucide-react";
+
+const exportCSV = (patients) => {
+  const headers = ["Name", "Age", "Email", "Phone", "Gender", "Blood Group"];
+  const rows = patients.map((p) => [
+    p.name,
+    p.age,
+    p.email,
+    p.phone,
+    p.gender,
+    p.blood_group,
+  ]);
+  const csvContent =
+    "data:text/csv;charset=utf-8," +
+    [headers, ...rows].map((e) => e.join(",")).join("\n");
+  const link = document.createElement("a");
+  link.href = encodeURI(csvContent);
+  link.download = "patients.csv";
+  link.click();
+};
+
+const exportPDF = (patients) => {
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text("Patient Report", 20, 20);
+  let y = 40;
+  patients.forEach((p, i) => {
+    doc.setFontSize(12);
+    doc.text(`${i + 1}. ${p.name} (${p.age})`, 20, y);
+    doc.text(`Email: ${p.email || "N/A"}`, 20, y + 10);
+    doc.text(`Phone: ${p.phone || "N/A"}`, 20, y + 20);
+    doc.text(`Gender: ${p.gender || "N/A"}`, 20, y + 30);
+    doc.text(`Blood Group: ${p.blood_group || "N/A"}`, 20, y + 40);
+    y += 60;
+  });
+  doc.save("patients.pdf");
+};
 
 const PatientsTable = () => {
-  const supabase = createBrowserSupabaseClient();
+  const router = useRouter();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const fetchPatients = async () => {
-    setLoading(true);
-
-    try {
-      const {
-        data: { user: authUser },
-        error: authErr,
-      } = await supabase.auth.getUser();
-
-      if (authErr || !authUser) {
-        toast.error("You must be logged in as a doctor 🔒");
-        setLoading(false);
-        return;
-      }
-
-      const doctorId = authUser.id;
-
-      // 2️⃣ Get all patient_ids linked to this doctor
-      const { data: links, error: linkErr } = await supabase
-        .from("doctor_patient")
-        .select("patient_id")
-        .eq("doctor_id", doctorId);
-
-      if (linkErr) {
-        toast.error("Failed to load linked patients IDs");
-        setLoading(false);
-        return;
-      }
-
-      const patientIds = links.map((l) => l.patient_id);
-      if (patientIds.length === 0) {
-        setPatients([]);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch full patient details from users table
-      const { data: patientData, error: patientErr } = await supabase
-        .from("users")
-        .select("id, name, email, dob")
-        .in("id", patientIds);
-
-      if (patientErr) {
-        toast.error("Failed to load patient details");
-        setLoading(false);
-        return;
-      }
-
-      const formatted = patientData.map((p) => ({
-        id: p.id,
-        name: p.name || "Unnamed Patient",
-        email: p.email,
-        age: p.dob
-          ? Math.floor(
-              (new Date() - new Date(p.dob)) / (1000 * 60 * 60 * 24 * 365)
-            )
-          : "Unknown",
-      }));
-
-      setPatients(formatted);
-    } catch (err) {
-      console.error(err);
-      toast.error("Unexpected error while fetching patients");
-    }
-
-    setLoading(false);
-  };
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const limit = 10;
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    const loadPatients = async () => {
+      setLoading(true);
+      const { success, data, error } = await fetchPatients(
+        [
+          "id",
+          "name",
+          "email",
+          "dob",
+          "phone",
+          "gender",
+          "blood_group",
+          "created_at",
+        ],
+        page * limit,
+        page * limit + limit - 1
+      );
+      if (!success) {
+        toast.error(error);
+      } else {
+        setPatients(data);
+      }
+      setLoading(false);
+    };
+    loadPatients();
+  }, [page]);
+
+  const filteredPatients = patients.filter(
+    (p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.email.toLowerCase().includes(search.toLowerCase()) ||
+      (p.phone || "").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <section className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow border border-zinc-200 dark:border-zinc-800">
-      <h3 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
-        Linked Patients
-      </h3>
+    <section className="bg-background rounded-2xl p-6 shadow border border-border">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xl font-semibold tracking-tight">
+            Your Patients
+          </h3>
+          <Badge
+            variant="secondary"
+            className="text-xs font-medium px-2 py-0.5"
+          >
+            {filteredPatients.length}
+          </Badge>
+        </div>
+        <div className="flex gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                Export CSV
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Export CSV?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will download all visible patients in CSV format.
+                  Continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    exportCSV(filteredPatients);
+                    toast.success("CSV download started 📥");
+                  }}
+                >
+                  Yes, export
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                Export PDF
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Export PDF?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will generate a PDF report of all visible patients.
+                  Continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    exportPDF(filteredPatients);
+                    toast.success("PDF generated 📄");
+                  }}
+                >
+                  Yes, export
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+
+      <Input
+        type="text"
+        placeholder="Search patients..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="mb-4"
+      />
 
       {loading ? (
-        <p className="text-sm text-zinc-500">
-          <ButtonLoader text="Loading patients..." />
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-6 bg-muted rounded animate-pulse" />
+          ))}
+        </div>
+      ) : filteredPatients.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center">
+          No patients found.
         </p>
-      ) : patients.length === 0 ? (
-        <p className="text-sm text-zinc-500">No patients linked yet.</p>
       ) : (
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400">
-              <th className="py-2">Name</th>
-              <th className="py-2">Age</th>
-              <th className="py-2">Email</th>
-            </tr>
-          </thead>
-          <tbody>
-            {patients.map((p) => (
-              <tr
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Age</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Gender</TableHead>
+              <TableHead>Blood Group</TableHead>
+              <TableHead>Added On</TableHead>
+              <TableHead>View</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredPatients.map((p) => (
+              <TableRow
                 key={p.id}
-                className="border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                onClick={() => router.push(`/patients/${p.id}`)}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
               >
-                <td className="py-2 text-zinc-900 dark:text-zinc-100">
-                  {p.name}
-                </td>
-                <td className="py-2 text-zinc-900 dark:text-zinc-100">
-                  {p.age}
-                </td>
-                <td className="py-2 text-zinc-900 dark:text-zinc-100">
-                  {p.email}
-                </td>
-              </tr>
+                <TableCell>{p.name}</TableCell>
+                <TableCell>{p.age}</TableCell>
+                <TableCell>{p.email}</TableCell>
+                <TableCell>{p.phone || "—"}</TableCell>
+                <TableCell>{p.gender || "—"}</TableCell>
+                <TableCell>{p.blood_group || "—"}</TableCell>
+                <TableCell>
+                  {p.created_at
+                    ? new Date(p.created_at).toLocaleDateString()
+                    : "—"}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push(`/patients/${p.id}`)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
+
+      {/* Pagination */}
+      <div className="flex justify-between items-center mt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+          disabled={page === 0}
+        >
+          Previous
+        </Button>
+        <span className="text-sm text-muted-foreground">Page {page + 1}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
     </section>
   );
 };

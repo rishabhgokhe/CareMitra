@@ -1,81 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
+import { fetchAppointments } from "@/utils/fetchAppointments";
 import CreateAppointment from "./CreateAppointment";
 import ButtonLoader from "@/components/elements/ButtonLoader";
 
 const Appointments = () => {
-  const supabase = createBrowserSupabaseClient();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchAppointments = async () => {
+  const loadAppointments = async () => {
     setLoading(true);
-
-    try {
-      const {
-        data: { user: authUser },
-        error: authErr,
-      } = await supabase.auth.getUser();
-
-      if (authErr || !authUser) {
-        toast.error("You must be logged in as a doctor 🔒");
-        setLoading(false);
-        return;
-      }
-
-      const doctorId = authUser.id;
-
-      // Fetch appointments with patient and hospital details
-      const { data, error } = await supabase
-        .from("appointments")
-        .select(
-          `
-          id,
-          scheduled_at,
-          status,
-          notes,
-          patient:patient_id (id, name, email, phone, dob),
-          hospital:hospital_id (id, name, location)
-        `
-        )
-        .eq("doctor_id", doctorId)
-        .order("scheduled_at", { ascending: true });
-
-      if (error) {
-        toast.error("Failed to fetch appointments ❌");
-      } else {
-        const formatted = data.map((appt) => ({
-          id: appt.id,
-          patientName: appt.patient?.name || "Unnamed Patient",
-          patientEmail: appt.patient?.email || "Unknown Email",
-          patientPhone: appt.patient?.phone || "Unknown Phone",
-          patientAge: appt.patient?.dob
-            ? Math.floor(
-                (new Date() - new Date(appt.patient.dob)) /
-                  (1000 * 60 * 60 * 24 * 365)
-              )
-            : "Unknown",
-          hospitalName: appt.hospital?.name || "Unknown Hospital",
-          hospitalLocation: appt.hospital?.location || "",
-          scheduledAt: new Date(appt.scheduled_at),
-          status: appt.status,
-          notes: appt.notes,
-        }));
-        setAppointments(formatted);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Unexpected error while fetching appointments 💥");
+    const { success, data, error } = await fetchAppointments();
+    if (!success) {
+      toast.error(error);
+    } else {
+      setAppointments(data);
     }
-
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchAppointments();
+    loadAppointments();
   }, []);
 
   return (
@@ -87,9 +34,7 @@ const Appointments = () => {
       <CreateAppointment />
 
       {loading ? (
-        <p className="text-sm text-zinc-500">
-          <ButtonLoader text="Loading appointments..." />
-        </p>
+        <ButtonLoader text="Loading appointments..." />
       ) : appointments.length === 0 ? (
         <p className="text-sm text-zinc-500">No upcoming appointments.</p>
       ) : (
