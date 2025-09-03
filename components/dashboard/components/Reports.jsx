@@ -27,7 +27,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import { gsap } from 'gsap';
-import './CareMitra.css'; // Assuming you'll move the CSS into a separate file
+// import './CareMitra.css'; // Assuming you'll move the CSS into a separate file
 
 const CareMitraReport = () => {
   // --- State Hooks ---

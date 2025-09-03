@@ -10,81 +10,130 @@ import { Label } from "@/components/ui/label";
 import ThemeToggle from "@/components/elements/ThemeToggle";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 export default function SettingsPage() {
-  const [email, setEmail] = useState(null);
-  const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [avatar, setAvatar] = useState(null);
-  const [uploading, setUploading] = useState(false);
-
   const supabase = createBrowserSupabaseClient();
   const router = useRouter();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState(null);
 
-      if (!user) {
-        router.push("/login");
-      } else {
-        setEmail(user.email);
-        setDisplayName(user.user_metadata?.displayName || "");
-        setPhone(user.user_metadata?.phone || "");
-        setAvatar(user.user_metadata?.avatar_url || "/images/profile.png");
+  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatar, setAvatar] = useState("/images/profile.png");
+  const [gender, setGender] = useState("Unknown");
+  const [dob, setDob] = useState(null);
+  const [bloodGroup, setBloodGroup] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  // Fetch user from auth & users table
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        setLoading(true);
+        const {
+          data: { user: authUser },
+          error: authErr,
+        } = await supabase.auth.getUser();
+
+        if (authErr || !authUser) {
+          router.push("/login");
+          return;
+        }
+
+        setUserId(authUser.id);
+
+        const { data: userData, error: userErr } = await supabase
+          .from("users")
+          .select("id, name, email, phone, avatar_url, gender, dob, blood_group")
+          .eq("id", authUser.id)
+          .maybeSingle();
+
+        if (userErr) throw userErr;
+
+        if (userData) {
+          setEmail(userData.email);
+          setDisplayName(userData.name || "");
+          setPhone(userData.phone || "");
+          setAvatar(userData.avatar_url || "/images/profile.png");
+          setGender(userData.gender || "Unknown");
+          setDob(userData.dob ? new Date(userData.dob) : null);
+          setBloodGroup(userData.blood_group || "");
+        } else {
+          setEmail(authUser.email || "");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to fetch user data");
+      } finally {
+        setLoading(false);
       }
     };
 
-    getUser();
+    fetchUser();
   }, [supabase, router]);
 
-  const handleProfileUpdate = async () => {
-    const { error } = await supabase.auth.updateUser({
-      data: {
-        displayName,
-        phone,
-        avatar_url: avatar,
-      },
-    });
-
-    if (error) {
-      toast.error("Failed to update profile");
-    } else {
-      toast.success("Profile updated successfully");
-    }
-  };
-
+  // Upload avatar and save to users table
   const handleUploadPhoto = async (event) => {
     try {
       setUploading(true);
-      if (!event.target.files || event.target.files.length === 0) {
+      if (!event.target.files || event.target.files.length === 0)
         throw new Error("You must select an image to upload.");
-      }
 
       const file = event.target.files[0];
       const formData = new FormData();
       formData.append("file", file);
 
-      // Upload to Cloudinary via your API route
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
 
-      const data = await response.json();
+      setAvatar(data.url);
 
-      if (!response.ok) throw new Error(data.error || "Upload failed");
+      // Save immediately to users table
+      const { error: updateErr } = await supabase
+        .from("users")
+        .update({ avatar_url: data.url })
+        .eq("id", userId);
 
-      setAvatar(data.url); // Set new avatar URL locally
+      if (updateErr) throw updateErr;
 
-      toast.success("Photo uploaded, click save to update.");
-    } catch (error) {
-      console.error(error);
-      toast.error(error.message || "Upload failed");
+      toast.success("Avatar uploaded and saved!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Upload failed");
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Update user profile
+  const handleProfileUpdate = async () => {
+    if (!userId) return;
+
+    try {
+      const { error } = await supabase.from("users").upsert(
+        {
+          id: userId,
+          name: displayName,
+          phone,
+          gender,
+          dob: dob || null,
+          blood_group: bloodGroup,
+        },
+        { onConflict: "id" }
+      );
+
+      if (error) throw error;
+
+      toast.success("Profile updated successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update profile");
     }
   };
 
@@ -92,6 +141,9 @@ export default function SettingsPage() {
     await supabase.auth.signOut();
     router.push("/login");
   };
+
+  if (loading)
+    return <p className="text-center mt-20 text-gray-500 dark:text-gray-300">Loading...</p>;
 
   return (
     <main className="max-w-3xl mx-auto p-6 space-y-6">
@@ -111,17 +163,10 @@ export default function SettingsPage() {
               height={64}
               className="rounded-full border"
             />
-            <div>
+            <div className="flex flex-col gap-2">
               <p className="font-medium">{email ?? "Loading..."}</p>
-              <p className="text-sm text-muted-foreground">
-                Your registered account
-              </p>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleUploadPhoto}
-                disabled={uploading}
-              />
+              <p className="text-sm text-muted-foreground">Your registered account</p>
+              <Input type="file" accept="image/*" onChange={handleUploadPhoto} disabled={uploading} />
             </div>
           </div>
 
@@ -142,6 +187,44 @@ export default function SettingsPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Enter your phone number"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="gender">Gender</Label>
+            <Input
+              id="gender"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              placeholder="Enter gender"
+            />
+          </div>
+
+          <div>
+            <Label>Date of Birth</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full text-left">
+                  {dob ? format(dob, "PPP") : "Select date of birth"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={dob}
+                  onSelect={(date) => setDob(date)}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div>
+            <Label htmlFor="bloodGroup">Blood Group</Label>
+            <Input
+              id="bloodGroup"
+              value={bloodGroup}
+              onChange={(e) => setBloodGroup(e.target.value)}
+              placeholder="Enter blood group"
             />
           </div>
 
