@@ -18,7 +18,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import Separator from "@/components/elements/separator";
+import Separator from "@/components/elements/Separator.jsx";
 import InfoCard from "./InfoCard";
 import LogoutButton from "@/components/elements/LogoutButton";
 
