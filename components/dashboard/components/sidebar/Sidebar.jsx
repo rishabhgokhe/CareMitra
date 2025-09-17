@@ -10,7 +10,6 @@ import {
   FileText,
   BarChart3,
   Settings,
-  LogOut,
   PanelRightClose,
   PanelRightOpen,
   LayoutDashboard,
