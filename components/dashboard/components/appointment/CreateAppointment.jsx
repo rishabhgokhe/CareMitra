@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { format } from "date-fns";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,32 +16,63 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import toast from "react-hot-toast";
-import { PlusCircle } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
 import ButtonLoader from "@/components/elements/ButtonLoader";
+import { PlusCircle, Calendar as CalendarIcon, Clock } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function CreateAppointment() {
   const supabase = createBrowserSupabaseClient();
+
   const [patients, setPatients] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState("");
   const [selectedHospital, setSelectedHospital] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [doctorId, setDoctorId] = useState(null);
   const [open, setOpen] = useState(false);
 
+  // Date & Time states
+  const [date, setDate] = useState(null);
+  const [time, setTime] = useState("");
+
+  const scheduledAtISO =
+    date && time
+      ? new Date(`${format(date, "yyyy-MM-dd")}T${time}:00`).toISOString()
+      : null;
+
   // Fetch doctor, patients, hospitals
   useEffect(() => {
     (async () => {
+      // Get auth user
       const { data: authData, error: authErr } = await supabase.auth.getUser();
       if (authErr || !authData.user) {
         toast.error("You must be logged in as a doctor 🔒");
         return;
       }
-      setDoctorId(authData.user.id);
 
+      // Fetch doctor record (doctor.id = auth.users.id)
+      const { data: doctorData, error: doctorErr } = await supabase
+        .from("doctors")
+        .select("id")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (doctorErr || !doctorData) {
+        toast.error("Doctor profile not found!");
+        return;
+      }
+
+      setDoctorId(doctorData.id);
+
+      // Fetch patients
       const { data: patientData } = await supabase
         .from("users")
         .select("id, name, email")
@@ -46,6 +80,7 @@ export default function CreateAppointment() {
         .order("name", { ascending: true });
       setPatients(patientData || []);
 
+      // Fetch hospitals
       const { data: hospitalData } = await supabase
         .from("hospitals")
         .select("id, name, location")
@@ -55,30 +90,36 @@ export default function CreateAppointment() {
   }, [supabase]);
 
   const handleCreateAppointment = async () => {
-    if (!selectedPatient || !selectedHospital || !scheduledAt) {
+    if (!selectedPatient || !selectedHospital || !scheduledAtISO) {
       toast.error("Please fill all required fields ⚠️");
       return;
     }
 
     setLoading(true);
+
     const { error } = await supabase.from("appointments").insert([
       {
         patient_id: selectedPatient,
-        doctor_id: doctorId,
+        doctor_id: doctorId, // ✅ Correct doctor ID
         hospital_id: selectedHospital,
-        scheduled_at: new Date(scheduledAt).toISOString(),
+        scheduled_at: scheduledAtISO,
         status: "scheduled",
         notes,
       },
     ]);
 
+    console.log(
+      `Patient: ${selectedPatient}, Doctor: ${doctorId}, Hospital: ${selectedHospital}, Scheduled At: ${scheduledAtISO}, Notes: ${notes}`
+    );
+
     if (error) toast.error("Failed to create appointment ❌");
     else {
       toast.success("Appointment created successfully 🎉");
-      // reset form
+      // Reset form
       setSelectedPatient("");
       setSelectedHospital("");
-      setScheduledAt("");
+      setDate(null);
+      setTime("");
       setNotes("");
       setOpen(false);
     }
@@ -89,7 +130,9 @@ export default function CreateAppointment() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary">Create Appointment <PlusCircle /></Button>
+        <Button variant="secondary">
+          Create Appointment <PlusCircle className="ml-2 h-4 w-4" />
+        </Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-lg">
@@ -98,6 +141,7 @@ export default function CreateAppointment() {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Patient Selector */}
           <div>
             <Label htmlFor="patient">Patient</Label>
             <select
@@ -115,6 +159,7 @@ export default function CreateAppointment() {
             </select>
           </div>
 
+          {/* Hospital Selector */}
           <div>
             <Label htmlFor="hospital">Hospital</Label>
             <select
@@ -132,16 +177,45 @@ export default function CreateAppointment() {
             </select>
           </div>
 
-          <div>
-            <Label htmlFor="datetime">Scheduled Date & Time</Label>
-            <Input
-              id="datetime"
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-            />
+          {/* Date & Time Selector */}
+          <div className="flex flex-col gap-2">
+            <Label>Scheduled Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={date || undefined}
+                  onSelect={setDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Label>Scheduled Time</Label>
+            <div className="relative">
+              <Input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="pr-10"
+              />
+              <Clock className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            </div>
           </div>
 
+          {/* Notes */}
           <div>
             <Label htmlFor="notes">Notes (optional)</Label>
             <textarea
@@ -160,7 +234,11 @@ export default function CreateAppointment() {
             disabled={loading}
             className="w-full"
           >
-            {loading ? <ButtonLoader text="Creating..." /> : "Create Appointment ✅"}
+            {loading ? (
+              <ButtonLoader text="Creating..." />
+            ) : (
+              "Create Appointment ✅"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

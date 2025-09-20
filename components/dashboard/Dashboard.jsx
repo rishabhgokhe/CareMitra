@@ -21,8 +21,8 @@ export default function Dashboard() {
         <main className="flex-1 p-4 md:p-6">
           {active === "Overview" && <Overview />}
           {active === "Patients" && <PatientsTable />}
-          {active === "Reports" && <Reports />}
           {active === "Appointments" && <Appointments />}
+          {active === "Reports" && <Reports />}
           {active === "Settings" && <Settings />}
         </main>
       </div>
