@@ -11,8 +11,19 @@ import ThemeToggle from "@/components/elements/ThemeToggle";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format, parse } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SettingsPage() {
   const supabase = createBrowserSupabaseClient();
@@ -27,14 +38,24 @@ export default function SettingsPage() {
   const [avatar, setAvatar] = useState("/images/profile.png");
   const [gender, setGender] = useState("Unknown");
   const [dob, setDob] = useState(null);
+  const [dobInput, setDobInput] = useState(""); // for typing DOB
   const [bloodGroup, setBloodGroup] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  // Fetch user from auth & users table
+  // Doctor-specific fields (readonly)
+  const [qualification, setQualification] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [rating, setRating] = useState(0);
+  const [experienceYears, setExperienceYears] = useState(0);
+
+  const genderOptions = ["Male", "Female", "Other", "Unknown"];
+  const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
         setLoading(true);
+
         const {
           data: { user: authUser },
           error: authErr,
@@ -49,26 +70,41 @@ export default function SettingsPage() {
 
         const { data: userData, error: userErr } = await supabase
           .from("users")
-          .select("id, name, email, phone, avatar_url, gender, dob, blood_group")
+          .select("*")
           .eq("id", authUser.id)
           .maybeSingle();
 
         if (userErr) throw userErr;
 
         if (userData) {
-          setEmail(userData.email);
+          setEmail(userData.email || "");
           setDisplayName(userData.name || "");
           setPhone(userData.phone || "");
           setAvatar(userData.avatar_url || "/images/profile.png");
           setGender(userData.gender || "Unknown");
-          setDob(userData.dob ? new Date(userData.dob) : null);
+          const dobDate = userData.dob ? new Date(userData.dob) : null;
+          setDob(dobDate);
+          setDobInput(dobDate ? format(dobDate, "yyyy-MM-dd") : "");
           setBloodGroup(userData.blood_group || "");
-        } else {
-          setEmail(authUser.email || "");
+        }
+
+        const { data: doctorData, error: docErr } = await supabase
+          .from("doctors")
+          .select("*")
+          .eq("id", authUser.id)
+          .maybeSingle();
+
+        if (docErr) throw docErr;
+
+        if (doctorData) {
+          setQualification(doctorData.qualification || "");
+          setSpecialization(doctorData.specialization || "");
+          setRating(doctorData.rating || 0);
+          setExperienceYears(doctorData.experience_years || 0);
         }
       } catch (err) {
         console.error(err);
-        toast.error("Failed to fetch user data");
+        toast.error("Failed to fetch data");
       } finally {
         setLoading(false);
       }
@@ -77,7 +113,6 @@ export default function SettingsPage() {
     fetchUser();
   }, [supabase, router]);
 
-  // Upload avatar and save to users table
   const handleUploadPhoto = async (event) => {
     try {
       setUploading(true);
@@ -88,13 +123,15 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
       setAvatar(data.url);
 
-      // Save immediately to users table
       const { error: updateErr } = await supabase
         .from("users")
         .update({ avatar_url: data.url })
@@ -111,24 +148,27 @@ export default function SettingsPage() {
     }
   };
 
-  // Update user profile
   const handleProfileUpdate = async () => {
     if (!userId) return;
 
+    let parsedDob = null;
+    if (dobInput) {
+      parsedDob = parse(dobInput, "yyyy-MM-dd", new Date());
+    }
+
     try {
-      const { error } = await supabase.from("users").upsert(
+      const { error: userErr } = await supabase.from("users").upsert(
         {
           id: userId,
           name: displayName,
           phone,
           gender,
-          dob: dob || null,
+          dob: parsedDob,
           blood_group: bloodGroup,
         },
         { onConflict: "id" }
       );
-
-      if (error) throw error;
+      if (userErr) throw userErr;
 
       toast.success("Profile updated successfully!");
     } catch (err) {
@@ -143,112 +183,172 @@ export default function SettingsPage() {
   };
 
   if (loading)
-    return <p className="text-center mt-20 text-gray-500 dark:text-gray-300">Loading...</p>;
+    return (
+      <p className="text-center mt-20 text-gray-500 dark:text-gray-300">
+        Loading...
+      </p>
+    );
 
   return (
     <main className="max-w-3xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">Settings</h1>
 
       {/* Profile */}
-      <Card className="rounded-2xl">
+      <Card className="rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle>Profile</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex flex-col items-center gap-4">
             <Image
               src={avatar || "/images/profile.png"}
               alt="Profile"
-              width={64}
-              height={64}
+              width={96}
+              height={96}
               className="rounded-full border"
             />
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">{email ?? "Loading..."}</p>
-              <p className="text-sm text-muted-foreground">Your registered account</p>
-              <Input type="file" accept="image/*" onChange={handleUploadPhoto} disabled={uploading} />
+            <p className="font-medium">{email}</p>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={handleUploadPhoto}
+              disabled={uploading}
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input
+                id="displayName"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Enter your display name"
+              />
             </div>
-          </div>
 
-          <div>
-            <Label htmlFor="displayName">Display Name</Label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Enter your display name"
-            />
-          </div>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter your phone number"
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter your phone number"
-            />
-          </div>
+            <div>
+              <Label>Gender</Label>
+              <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  {genderOptions.map((g) => (
+                    <SelectItem key={g} value={g}>
+                      {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div>
-            <Label htmlFor="gender">Gender</Label>
-            <Input
-              id="gender"
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-              placeholder="Enter gender"
-            />
-          </div>
-
-          <div>
-            <Label>Date of Birth</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full text-left">
-                  {dob ? format(dob, "PPP") : "Select date of birth"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={dob}
-                  onSelect={(date) => setDob(date)}
+            <div>
+              <Label>Date of Birth</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="date"
+                  value={dobInput}
+                  onChange={(e) => setDobInput(e.target.value)}
+                  className="flex-1"
                 />
-              </PopoverContent>
-            </Popover>
-          </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline">Pick</Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={dob}
+                      onSelect={(date) => {
+                        setDob(date);
+                        setDobInput(date ? format(date, "yyyy-MM-dd") : "");
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
 
-          <div>
-            <Label htmlFor="bloodGroup">Blood Group</Label>
-            <Input
-              id="bloodGroup"
-              value={bloodGroup}
-              onChange={(e) => setBloodGroup(e.target.value)}
-              placeholder="Enter blood group"
-            />
-          </div>
+            <div>
+              <Label>Blood Group</Label>
+              <Select value={bloodGroup} onValueChange={setBloodGroup}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select blood group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bloodGroups.map((bg) => (
+                    <SelectItem key={bg} value={bg}>
+                      {bg}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Button className="w-full" onClick={handleProfileUpdate}>
-            Save Changes
-          </Button>
+            <Button className="mt-4 w-full" onClick={handleProfileUpdate}>
+              Save Changes
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
+      {/* Doctor Info */}
+      {(qualification || specialization || rating) && (
+        <Card className="rounded-2xl shadow-md">
+          <CardHeader>
+            <CardTitle>Doctor Info</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-muted-foreground font-semibold">
+                Qualification
+              </p>
+              <p>{qualification || "-"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground font-semibold">
+                Specialization
+              </p>
+              <p>{specialization || "-"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground font-semibold">
+                Experience (Years)
+              </p>
+              <p>{experienceYears}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground font-semibold">Rating</p>
+              <p>{rating}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Preferences */}
-      <Card className="rounded-2xl">
+      <Card className="rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle>Preferences</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>Theme</Label>
-            <ThemeToggle />
-          </div>
+        <CardContent className="flex items-center justify-between">
+          <Label>Theme</Label>
+          <ThemeToggle />
         </CardContent>
       </Card>
 
       {/* Account */}
-      <Card className="rounded-2xl">
+      <Card className="rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle>Account</CardTitle>
         </CardHeader>

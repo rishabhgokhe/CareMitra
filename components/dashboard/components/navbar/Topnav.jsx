@@ -11,16 +11,18 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, ChevronDown } from "lucide-react";
+import { Bell, ChevronDown, Hospital } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import ThemeToggle from "@/components/elements/ThemeToggle";
 import LogoutButton from "@/components/elements/LogoutButton";
 import SearchPatients from "./SearchPatients";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Topnav() {
   const [user, setUser] = useState(null);
+  const [hospitalName, setHospitalName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const supabase = createBrowserSupabaseClient();
@@ -29,6 +31,7 @@ export default function Topnav() {
   useEffect(() => {
     const getUser = async () => {
       setLoading(true);
+
       const {
         data: { user: authUser },
         error: authErr,
@@ -45,28 +48,38 @@ export default function Topnav() {
         .eq("id", authUser.id)
         .maybeSingle();
 
-      setUser({
+      const currentUser = {
         id: authUser.id,
         name: userData?.name ?? authUser.email ?? "Unknown User",
-        avatar: userData?.avatar_url ?? "/images/profile.png",
+        avatar: userData?.avatar_url ?? "",
         role: userData?.role ?? "user",
-      });
+      };
+
+      setUser(currentUser);
+
+      if (currentUser.role === "doctor") {
+        const { data: doctorData } = await supabase
+          .from("doctors")
+          .select("hospital_id")
+          .eq("id", currentUser.id)
+          .maybeSingle();
+
+        if (doctorData?.hospital_id) {
+          const { data: hospData } = await supabase
+            .from("hospitals")
+            .select("name")
+            .eq("id", doctorData.hospital_id)
+            .maybeSingle();
+
+          setHospitalName(hospData?.name ?? null);
+        }
+      }
 
       setLoading(false);
     };
 
     getUser();
   }, [supabase, router]);
-
-  if (loading) {
-    return (
-      <header className="backdrop-blur-sm sticky top-0 z-50 pb-2">
-        <div className="px-4 md:px-6 flex items-center justify-between gap-3">
-          <span className="text-sm text-zinc-500">Loading...</span>
-        </div>
-      </header>
-    );
-  }
 
   const isAdmin =
     user?.role === "system_admin" || user?.role === "hospital_admin";
@@ -78,6 +91,24 @@ export default function Topnav() {
         <SearchPatients />
 
         <div className="flex items-center gap-3 relative">
+          {/* Hospital name skeleton */}
+          {isDoc && (
+            <div className="flex items-center pr-4 border-r border-zinc-300 dark:border-zinc-600">
+              {loading ? (
+                <Skeleton className="h-5 w-36 rounded-md" />
+              ) : hospitalName ? (
+                <span className="flex items-center gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                  <Hospital className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                  {hospitalName}
+                </span>
+              ) : (
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                  No hospital
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Theme toggle */}
           <ThemeToggle />
 
@@ -118,20 +149,30 @@ export default function Topnav() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
-                <Image
-                  src={user?.avatar}
-                  alt="User Profile"
-                  width={32}
-                  height={32}
-                  className="rounded-full border border-zinc-300 dark:border-zinc-600"
-                />
+                {/* Skeleton avatar while loading */}
+                {loading || !user?.avatar ? (
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                ) : (
+                  <Image
+                    src={user.avatar}
+                    alt="User Profile"
+                    width={32}
+                    height={32}
+                    className="rounded-full border border-zinc-300 dark:border-zinc-600"
+                  />
+                )}
+
                 <div className="hidden sm:flex flex-col leading-tight">
                   <span className="text-xs text-zinc-500 dark:text-zinc-400">
                     Welcome back,
                   </span>
-                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {isDoc && "Dr."} {isAdmin && "Ad."} {user?.name}
-                  </span>
+                  {loading ? (
+                    <Skeleton className="h-4 w-24 rounded-md" />
+                  ) : (
+                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {isDoc && "Dr."} {isAdmin && "Ad."} {user?.name}
+                    </span>
+                  )}
                 </div>
                 <ChevronDown className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
               </div>

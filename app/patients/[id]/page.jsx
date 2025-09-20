@@ -5,20 +5,10 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import Loader from "@/components/elements/Loader";
-import {
-  Calendar,
-  FileText,
-  Pill,
-  User,
-  Phone,
-  Mail,
-  Droplet,
-} from "lucide-react";
+import { Calendar, FileText, Pill } from "lucide-react";
 import AppointmentCard from "@/components/dashboard/components/appointment/AppointmentCard";
-import AppSidebar from "@/components/dashboard/components/sidebar/Sidebar";
-import Topnav from "@/components/dashboard/components/navbar/Topnav";
 import PaitentInfoCard from "@/components/dashboard/components/paitents/PaitentInfoCard";
+import PatientReportGenerator from "@/components/dashboard/components/paitents/PatientReportGenerator";
 
 function SkeletonCard() {
   return (
@@ -117,6 +107,12 @@ export default function PatientDetailsPage() {
         {/* <Topnav /> */}
         <main className="flex-1 p-6 md:p-10 space-y-10 overflow-y-auto">
           <PaitentInfoCard patient={patient} />
+          <PatientReportGenerator
+            patient={patient}
+            appointments={appointments}
+            records={records}
+            prescriptions={prescriptions}
+          />
 
           {/* Tabs */}
           <Tabs defaultValue="appointments" className="w-full">
