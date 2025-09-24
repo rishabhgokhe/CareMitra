@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
+
+// Server-side Supabase client with Service Role
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export async function POST(request) {
   try {
-    const supabase = createServerComponentClient({ cookies: request.cookies });
     const body = await request.json();
 
     const { templateId, hospitalId } = body;
