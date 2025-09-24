@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -100,7 +101,7 @@ export default function CreateAppointment() {
     const { error } = await supabase.from("appointments").insert([
       {
         patient_id: selectedPatient,
-        doctor_id: doctorId, // ✅ Correct doctor ID
+        doctor_id: doctorId,
         hospital_id: selectedHospital,
         scheduled_at: scheduledAtISO,
         status: "scheduled",
@@ -138,6 +139,9 @@ export default function CreateAppointment() {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Create Appointment</DialogTitle>
+          <DialogDescription>
+            Fill in details below to schedule a new appointment.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

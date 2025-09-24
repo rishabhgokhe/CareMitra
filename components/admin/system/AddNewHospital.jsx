@@ -30,6 +30,7 @@ export default function AddNewHospital() {
       pincode: "",
     },
   });
+  const [templates, setTemplates] = useState([]); // Array of { file, template_type }
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -45,19 +46,70 @@ export default function AddNewHospital() {
     }
   };
 
+  const handleTemplateChange = (index, field, value) => {
+    setTemplates((prev) => {
+      const updated = [...prev];
+      updated[index][field] = value;
+      return updated;
+    });
+  };
+
+  const addTemplate = () => {
+    setTemplates((prev) => [...prev, { file: null, template_type: "" }]);
+  };
+
+  const removeTemplate = (index) => {
+    setTemplates((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const payload = { ...form, location: form.location };
+    try {
+      // 1️⃣ Create hospital first
+      const { data: hospitalData, error: hospitalErr } = await supabase
+        .from("hospitals")
+        .insert([{ ...form, location: form.location }])
+        .select("id")
+        .single();
 
-    const { error } = await supabase.from("hospitals").insert([payload]);
+      if (hospitalErr) throw hospitalErr;
 
-    if (error) {
-      console.error(error);
-      toast.error("Error adding hospital");
-    } else {
-      toast.success("Hospital added successfully!");
+      const hospitalId = hospitalData.id;
+
+      // 2️⃣ Upload templates one by one
+      for (let tpl of templates) {
+        if (!tpl.file || !tpl.template_type) continue;
+
+        const formData = new FormData();
+        formData.append("file", tpl.file);
+        formData.append("hospital_id", hospitalId);
+        formData.append("template_type", tpl.template_type);
+        formData.append(
+          "placeholders",
+          JSON.stringify([
+            "dr_name",
+            "patient_name",
+            "medicine",
+            "quantity",
+            "timing",
+            "signature",
+            "qr_code_id",
+          ])
+        );
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await res.json();
+        if (res.status !== 200)
+          throw new Error(result.error || "Upload failed");
+      }
+
+      toast.success("Hospital and templates added successfully!");
       setForm({
         name: "",
         slug: "",
@@ -71,6 +123,10 @@ export default function AddNewHospital() {
           pincode: "",
         },
       });
+      setTemplates([]);
+    } catch (err) {
+      console.error(err);
+      toast.error("Error adding hospital or templates");
     }
 
     setLoading(false);
@@ -82,7 +138,8 @@ export default function AddNewHospital() {
         <CardHeader>
           <CardTitle>Add New Hospital</CardTitle>
           <CardDescription>
-            Fill in the details below to create a new hospital.
+            Fill in the details below to create a new hospital and upload
+            templates.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -93,46 +150,36 @@ export default function AddNewHospital() {
               <Input
                 id="name"
                 name="name"
-                placeholder="City Hospital"
                 value={form.name}
                 onChange={handleChange}
                 required
               />
             </div>
-
             <div className="space-y-1">
               <Label htmlFor="slug">Unique Slug</Label>
               <Input
                 id="slug"
                 name="slug"
-                placeholder="city-hospital"
                 value={form.slug}
                 onChange={handleChange}
               />
-              <p className="text-xs text-gray-500">
-                Lowercase, no spaces, use hyphens. Used in URLs.
-              </p>
             </div>
-
             <div className="space-y-1">
               <Label htmlFor="contact_email">Contact Email</Label>
               <Input
                 id="contact_email"
                 name="contact_email"
                 type="email"
-                placeholder="contact@hospital.com"
                 value={form.contact_email}
                 onChange={handleChange}
               />
             </div>
-
             <div className="space-y-1">
               <Label htmlFor="contact_phone">Contact Phone</Label>
               <Input
                 id="contact_phone"
                 name="contact_phone"
                 type="tel"
-                placeholder="+91 12345 67890"
                 value={form.contact_phone}
                 onChange={handleChange}
               />
@@ -148,14 +195,12 @@ export default function AddNewHospital() {
                 onChange={handleChange}
               />
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="city">City</Label>
                 <Input
                   id="city"
                   name="city"
-                  placeholder="City"
                   value={form.location.city}
                   onChange={handleChange}
                 />
@@ -165,20 +210,17 @@ export default function AddNewHospital() {
                 <Input
                   id="state"
                   name="state"
-                  placeholder="State"
                   value={form.location.state}
                   onChange={handleChange}
                 />
               </div>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="country">Country</Label>
                 <Input
                   id="country"
                   name="country"
-                  placeholder="Country"
                   value={form.location.country}
                   onChange={handleChange}
                 />
@@ -188,11 +230,51 @@ export default function AddNewHospital() {
                 <Input
                   id="pincode"
                   name="pincode"
-                  placeholder="Pincode"
                   value={form.location.pincode}
                   onChange={handleChange}
                 />
               </div>
+            </div>
+
+            {/* Template Upload */}
+            <div className="space-y-2">
+              <Label>Upload Templates</Label>
+              {templates.map((tpl, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) =>
+                      handleTemplateChange(idx, "file", e.target.files[0])
+                    }
+                  />
+                  <select
+                    value={tpl.template_type}
+                    onChange={(e) =>
+                      handleTemplateChange(idx, "template_type", e.target.value)
+                    }
+                  >
+                    <option value="">Select Type</option>
+                    <option value="prescription">Prescription</option>
+                    <option value="lab_report">Lab Report</option>
+                    <option value="discharge_summary">Discharge Summary</option>
+                    <option value="imaging">Imaging</option>
+                    <option value="consultation_note">Consultation Note</option>
+                    <option value="vitals">Vitals</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeTemplate(idx)}
+                    className="text-red-500"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <Button type="button" onClick={addTemplate}>
+                Add Template
+              </Button>
             </div>
 
             <Button type="submit" disabled={loading} className="w-full">

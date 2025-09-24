@@ -123,7 +123,7 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/upload", {
+      const res = await fetch("/api/upload/upload_avatar", {
         method: "POST",
         body: formData,
       });
